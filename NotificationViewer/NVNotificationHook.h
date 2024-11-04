@@ -9,13 +9,11 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-extern void _CFXNotificationPost(CFNotificationCenterRef center, id notification, BOOL deliverImmediately);
-
 @interface NVNotificationHook : NSObject
 
 @property (class, nonatomic, readonly) NVNotificationHook *sharedHook;
 @property (readonly) NSArray<NSNotification *> *notifications;
-
+@property (getter=isEnabledLogging) BOOL enabledLogging;
 
 @end
 

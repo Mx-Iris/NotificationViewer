@@ -6,19 +6,15 @@
 //
 
 #import "NVNotificationHook.h"
-#import "fishhook.h"
+#import <OSLog/OSLog.h>
+#import <objc/runtime.h>
 
-//#import <AppKit/AppKit.h>
-
-//void (*orig_CFXNotificationPost)(CFNotificationCenterRef center, id notification, BOOL deliverImmediately);
-//
-//void my_CFXNotificationPost(CFNotificationCenterRef center, id notification, BOOL deliverImmediately) {
-//    NSLog(@"NotificationViewer: %@", notification);
-//    orig_CFXNotificationPost(center, notification, deliverImmediately);
-//}
+static os_log_t logger = nil;
 
 @interface NVNotificationHook ()
+
 @property (strong) NSMutableArray<NSNotification *> *mutableNotifications;
+
 @end
 
 @implementation NVNotificationHook
@@ -29,21 +25,10 @@
     dispatch_once(&onceToken, ^{
         hook = [[NVNotificationHook alloc] init];
         hook.mutableNotifications = [NSMutableArray array];
+        logger = os_log_create("com.JH.NotificationViewer", "NotificationViewer");
+        hook.enabledLogging = YES;
     });
     return hook;
-}
-
-+ (void)load {
-//    [[NSNotificationCenter defaultCenter] addObserver:[self sharedHook] selector:@selector(rebinds) name:NSApplicationWillFinishLaunchingNotification object:nil];
-//     struct rebinding rebindings[] = {
-//         {"CFXNotificationPost", my_CFXNotificationPost, (void **)&orig_CFXNotificationPost},
-//     };
-//     NSLog(@"%d", rebind_symbols(rebindings, 1));
-//     NSLog(@"rebinds");
-}
-
-- (void)rebinds {
-    
 }
 
 - (NSArray<NSNotification *> *)notifications {
@@ -52,7 +37,6 @@
 
 @end
 
-#import <objc/runtime.h>
 
 @implementation NSNotificationCenter (Swizzling)
 
@@ -89,7 +73,9 @@
 }
 
 - (void)swizzled_postNotification:(NSNotification *)notification {
-    NSLog(@"Post notification name: %@, object: %@, userInfo: %@", notification.name, notification.object, notification.userInfo);
+    if (NVNotificationHook.sharedHook.isEnabledLogging) {
+        os_log_debug(logger, "Post notification name: %@, object: %@, userInfo: %@", notification.name, notification.object, notification.userInfo);
+    }
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NVNotificationHook sharedHook].mutableNotifications addObject:notification];
     });
@@ -97,7 +83,9 @@
 }
 
 - (void)swizzled_postNotificationName:(NSNotificationName)aName object:(id)anObject {
-    NSLog(@"Post notification name: %@, object: %@", aName, anObject);
+    if (NVNotificationHook.sharedHook.isEnabledLogging) {
+        os_log_debug(logger, "Post notification name: %@, object: %@", aName, anObject);
+    }
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NVNotificationHook sharedHook].mutableNotifications addObject:[NSNotification notificationWithName:aName object:anObject]];
     });
@@ -105,7 +93,9 @@
 }
 
 - (void)swizzled_postNotificationName:(NSNotificationName)aName object:(id)anObject userInfo:(NSDictionary *)aUserInfo {
-    NSLog(@"Post notification name: %@, object: %@, userInfo: %@", aName, anObject, aUserInfo);
+    if (NVNotificationHook.sharedHook.isEnabledLogging) {
+        os_log_debug(logger, "Post notification name: %@, object: %@, userInfo: %@", aName, anObject, aUserInfo);
+    }
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NVNotificationHook sharedHook].mutableNotifications addObject:[NSNotification notificationWithName:aName object:anObject userInfo:aUserInfo]];
     });
